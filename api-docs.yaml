@@ -1,0 +1,88 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+tags:
+- name: Pricing Engine
+  description: Leverage dynamic pricing calculation logic and rules to calculate pricing
+    information in the form of Quotes.
+paths:
+  /api/executebatch:
+    post:
+      tags:
+      - Pricing Engine
+      summary: Start batch processing for Quote generation
+      description: Calculate pricing and generate quotes from Opportunities queried
+        using the SOQL WHERE clause.
+      operationId: executeBatch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchExecutionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BatchExecutionResponse"
+  /api/data/delete:
+    post:
+      tags:
+      - Pricing Engine
+      summary: Deletes all Quotes created by executeBatch
+      description: Starts a job to delete generate Quotes
+      operationId: datadelete
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DataJobResponse"
+  /api/data/create:
+    post:
+      tags:
+      - Pricing Engine
+      summary: Create sample Opportunties to test against
+      description: Starts a job to create a large amount of Opportunity records.
+      operationId: datacreate
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DataJobResponse"
+components:
+  schemas:
+    BatchExecutionRequest:
+      type: object
+      properties:
+        soqlWhereClause:
+          type: string
+          description: A SOQL WHERE clause for filtering opportunities
+          example: "OpportunityId IN ('0065g00000B9tMP', '0065g00000B9tMQ')"
+      description: "Request to execute a batch process, includes a SOQL WHERE clause\
+        \ to extract product information"
+    BatchExecutionResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+          description: Unique job ID for tracking the worker process
+          example: 3f7c47f3-7c66-4c9a-92e5-ef2dbb9a1d67
+      description: Response includes the unique job ID processing the request.
+    DataJobResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+          description: Unique job ID for tracking the worker process
+          example: 3f7c47f3-7c66-4c9a-92e5-ef2dbb9a1d67
+      description: Response includes the unique job ID processing the request.
