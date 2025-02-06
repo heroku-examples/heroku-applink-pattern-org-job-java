@@ -71,8 +71,6 @@ worker.1 | SampleDataWorkerService : Closed Bulk Job: 750am00000LrKNxAAN
 worker.1 | SampleDataWorkerService : Opportunity Products created successfully.
 ```
 
-Search under **Setup** for **Bulk Data Load Jobs** to confirm all records have been created.
-
 Finally navigate to the **Opportunities** tab in your Salesforce org and you should see something like the following
 
 <img src="images/opps.jpg" width="60%">
@@ -167,12 +165,9 @@ echo \
 ```
 
 > [!NOTE]
-> Run the `heroku logs --tail` command to monitor the logs to confirm the job completed. Then search under **Setup** for **Bulk Data Load Jobs** to confirm all records have been created.
+> Run the `heroku logs --tail` command to monitor the logs to confirm the job completed.
 
-Here is basic Apex invocation you can run from the command line to generate Quotes:
-
-> [!NOTE]
-> Run the `heroku logs --tail` command to monitor the logs of the `web` and `worker` processes as you did when running locally.
+Here some basic Apex code you can run from the command line to start the generate Quotes job:
 
 ```
 echo \
@@ -184,6 +179,10 @@ echo \
 "System.debug('Quote Id: ' + service.executeBatch(request).Code200.jobId);" \
 | sf apex run -o my-org
 ```
+
+> [!NOTE]
+> Run the `heroku logs --tail` command to monitor the logs of the `web` and `worker` processes as you did when running locally.
+
 
 You can re-run this operation as many times as you like it will simply keep adding Quotes to the sample Opporunties created.
 
