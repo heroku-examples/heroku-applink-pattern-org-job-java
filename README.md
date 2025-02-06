@@ -153,9 +153,7 @@ Once imported you can see the `executeBatch` operation that takes a [SOQL WHERE 
 
 <img src="images/imported.jpg" width="60%">
 
-As noted in the [Extending Apex, Flow and Agentforce](https://github.com/heroku-examples/heroku-integration-pattern-org-action-java?tab=readme-ov-file#heroku-integration---extending-apex-flow-and-agentforce---java) sample you can now invoke these operations from Apex, Flow or Agentforce.
-
-Here is basic Apex invocation to start the job to create the sample data (if you have not done so earlier):
+As noted in the [Extending Apex, Flow and Agentforce](https://github.com/heroku-examples/heroku-integration-pattern-org-action-java?tab=readme-ov-file#heroku-integration---extending-apex-flow-and-agentforce---java) sample you can now invoke these operations from Apex, Flow or Agentforce. Here is some basic Apex code to start the job to create the sample data (if you have not done so earlier):
 
 ```
 echo \
@@ -167,7 +165,7 @@ echo \
 > [!NOTE]
 > Run the `heroku logs --tail` command to monitor the logs to confirm the job completed.
 
-Here some basic Apex code you can run from the command line to start the generate Quotes job:
+Here is some basic Apex code you can run from the command line to start the generate Quotes job:
 
 ```
 echo \
@@ -183,8 +181,7 @@ echo \
 > [!NOTE]
 > Run the `heroku logs --tail` command to monitor the logs of the `web` and `worker` processes as you did when running locally.
 
-
-You can re-run this operation as many times as you like it will simply keep adding Quotes to the sample Opporunties created.
+Navigate to the **Quotes** tab in your org or one of the sample **Oppoortunties** to review the generates quotes. You can re-run this operation as many times as you like it will simply keep adding **Quotes** to the sample Opporunties created.
 
 # Removing Sample Data
 
