@@ -19,7 +19,7 @@ This sample includes two process types `web` and `worker`, both can be scaled ve
 
 As with other samples (see below) this section focuses on how to develop and test locally before deploying to Heroku and testing from within a Salesforce org. Using the `heroku local` command and a local version of the standard `Procfile` we can easily launch locally both these processes from one command. Run the following commands to run the sample locally against a remotely provisioned [Heroku Key Value Store](https://devcenter.heroku.com/articles/heroku-redis).
 
-> ![IMPORTANT]
+> [!IMPORTANT]
 > If have deployed the application, as described below and want to return to local development, you may want to destroy it to avoid race conditions since both will share the same job queue, use `heroku destroy`. In real situation you would have a different queue store for developer vs production.
 
 Start with the following commands to create an empty application and provision within Heroku a key value store this sample uses to manage the job queue:
@@ -106,7 +106,7 @@ Next we will deploy the application and import it into a Salesforce org to allow
 
 # Deploying and Testing
 
-> ![IMPORTANT]
+> [!IMPORTANT]
 > Check you are not still running the application locally. If you want to start over at any time use `heroku destroy` to delete your app.
 
 Steps below leverage the `sf` CLI as well so please ensure you have authenticated your org already - if not you can use this command:
@@ -166,12 +166,12 @@ echo \
 | sf apex run -o my-org
 ```
 
-> ![NOTE]
+> [!NOTE]
 > Run the `heroku logs --tail` command to monitor the logs to confirm the job completed. Then search under **Setup** for **Bulk Data Load Jobs** to confirm all records have been created.
 
 Here is basic Apex invocation you can run from the command line to generate Quotes:
 
-> ![NOTE]
+> [!NOTE]
 > Run the `heroku logs --tail` command to monitor the logs of the `web` and `worker` processes as you did when running locally.
 
 ```
