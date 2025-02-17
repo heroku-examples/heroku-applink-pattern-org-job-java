@@ -6,6 +6,8 @@ Heroku Integration - Scaling Batch Jobs with Heroku - Java
 
 This sample seamlessly delegates the processing of large amounts of data with significant compute requirements to Heroku Worker processes. It also demonstrates the use of the Unit of Work aspect of the SDK (JavaScript only for the pilot) for easier utilization of the Salesforce Composite APIs.
 
+# Architecture Overview
+
 The scenario used in this sample illustrates a basis for processing large volumes of Salesforce data using elastically scalable Heroku worker processes that execute complex compute calculations. In this case **Opportunity** data is read and calculated pricing data is stored in an associated **Quote**. Calculating quote information from opportunities can become quite intensive, especially when large multinational businesses have complex rules that impact pricing related to region, products, and discount thresholds. It's also possible that such code already exists, and there is a desire to reuse it within a Salesforce context. 
 
 <img src="images/arch.jpg" width="80%">
@@ -14,6 +16,15 @@ This sample includes two process types `web` and `worker`, both can be scaled ve
 
 > [!NOTE]
 > This sample could be considered an alternative to using Batch Apex if your data volumes and/or compute complexity requires it. In addition Heroku worker processes scale elastically and can thus avoid queue wait times impacting processing time that can occur with Batch Apex. For further information see **Technical Information** below.
+
+# Requirements
+- Heroku login
+- Heroku Integration Pilot enabled
+- Heroku CLI installed
+- Heroku Integration Pilot CLI plugin is installed
+- Salesforce CLI installed
+- Login information for one or more Scratch, Development or Sandbox orgs
+- Watch the [Introduction to the Heroku Integration Pilot for Developers](https://www.youtube.com/watch?v=T5kOGNuTCLE) video 
 
 # Local Development and Testing
 
