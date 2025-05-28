@@ -41,7 +41,7 @@ public class PricingEngineService {
 
     @Operation(summary = "Create sample Opportunties to test against", description = "Starts a job to create a large amount of Opportunity records.")
     @PostMapping("/data/create")
-    public DataJobResponse datacreate(@RequestParam(defaultValue = "100") Integer numberOfOpportunities, HttpServletRequest httpServletRequest) {
+    public DataJobResponse datacreate(@RequestParam(defaultValue = "5000") Integer numberOfOpportunities, HttpServletRequest httpServletRequest) {
         logger.info("Received Opportunity data creation request to create {} Opportunties", numberOfOpportunities);
         // Submit the job to the queue
         String jobId = enqueJob("dataQueue", "create:" + numberOfOpportunities, httpServletRequest);
