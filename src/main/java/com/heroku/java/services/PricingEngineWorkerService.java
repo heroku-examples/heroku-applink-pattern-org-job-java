@@ -88,6 +88,9 @@ public class PricingEngineWorkerService implements MessageListener {
                 return;
             }
 
+            // Check if JobProgress__e Platform Event object exists
+            boolean jobProgressEventExists = checkPlatformEventExists(connection, "JobProgress__e");
+
             // Fetch Opportunities and related OpportunityLineItems in one SOQL query
             String soql = String.format(
                 "SELECT Id, (SELECT Id, Product2Id, Quantity, UnitPrice, PricebookEntryId FROM OpportunityLineItems) " +
@@ -124,7 +127,7 @@ public class PricingEngineWorkerService implements MessageListener {
 
             // Step 2: Bulk create Quotes
             logger.info("Performing bulk insert for {} Quotes", quotesToCreate.size());
-            List<SaveResult> quoteSaveResults = createParallel(connection, quotesToCreate, jobId, 0.0, 50.0);
+            List<SaveResult> quoteSaveResults = createParallel(connection, quotesToCreate, jobId, 0.0, 50.0, jobProgressEventExists);
 
             // Step 3: Map created Quotes back to their OpportunityId
             Map<String, String> opportunityToQuoteMap = new HashMap<>();
@@ -163,7 +166,7 @@ public class PricingEngineWorkerService implements MessageListener {
             // Step 5: Bulk create QuoteLineItems
             if (!quoteLineItemsToCreate.isEmpty()) {
                 logger.info("Performing bulk insert for {} QuoteLineItems", quoteLineItemsToCreate.size());
-                List<SaveResult> quoteLineSaveResults = createParallel(connection, quoteLineItemsToCreate, jobId, 50.0, 100.0);
+                List<SaveResult> quoteLineSaveResults = createParallel(connection, quoteLineItemsToCreate, jobId, 50.0, 100.0, jobProgressEventExists);
                 for (SaveResult saveResult : quoteLineSaveResults) {
                     if (!saveResult.isSuccess()) {
                         logger.error("Failed to create QuoteLineItem: {}", saveResult.getErrors()[0].getMessage());
@@ -175,6 +178,16 @@ public class PricingEngineWorkerService implements MessageListener {
 
         } catch (Exception e) {
             logger.error("Error executing batch: {}", e.toString(), e);
+        }
+    }
+
+    private boolean checkPlatformEventExists(PartnerConnection connection, String objectName) {
+        try {
+            connection.describeSObject(objectName);
+            return true;
+        } catch (ConnectionException e) {
+            logger.warn("Platform Event object '{}' does not exist or is not accessible: {}", objectName, e.getMessage());
+            return false;
         }
     }
 
@@ -225,7 +238,7 @@ public class PricingEngineWorkerService implements MessageListener {
      * @param records
      * @return
      */
-    private List<SaveResult> createParallel(PartnerConnection connection, List<SObject> records, String jobId, double baseProgress, double maxProgress) {        
+    private List<SaveResult> createParallel(PartnerConnection connection, List<SObject> records, String jobId, double baseProgress, double maxProgress, boolean jobProgressEventExists) {        
         ExecutorService executor = Executors.newFixedThreadPool(20);
         List<Future<SaveResult[]>> futures = new ArrayList<>();
         int totalBatches = (int) Math.ceil(records.size() / 200.0);
@@ -242,7 +255,9 @@ public class PricingEngineWorkerService implements MessageListener {
                     synchronized (batchCounter) {
                         batchCounter[0]++;
                         double progress = baseProgress + ((double) batchCounter[0] / totalBatches) * (maxProgress - baseProgress);
-                        sendProgressEvent(connection, jobId, progress);
+                        if (jobProgressEventExists) {
+                            sendProgressEvent(connection, jobId, progress);
+                        }
                     }
 
                     return results;
