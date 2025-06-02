@@ -194,6 +194,12 @@ echo \
 
 Navigate to the **Quotes** tab in your org or one of the sample **Oppoortunties** to review the generates quotes. You can re-run this operation as many times as you like it will simply keep adding **Quotes** to the sample Opporunties created.
 
+## Using the UI
+
+This sample contains an optional Lighting Web Component that you can place in the Utility Bar of your Salesforce applications. This allows you to start the job and monitor its progress. A Platform Event `JobProgress__e` is used to share percentage complete status updates. The code and metadata for this is in the `src-org` directory. You can deploy it using the `sf project start deploy` command. 
+
+<img src="images/jobui.png" width="30%">
+
 # Removing Sample Data
 
 If you are running application locally, run the following command to execute a batch process to delete the sample **Opportunity** and **Quote** records.

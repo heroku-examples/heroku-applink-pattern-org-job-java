@@ -1,0 +1,20 @@
+<template>
+    <div class="slds-m-around_medium">
+        <lightning-progress-bar value={progress} size="large" variant="circular"></lightning-progress-bar>
+        
+        <div class="slds-align_absolute-center slds-m-top_medium">
+            <lightning-button
+                label="Start"
+                title="Start"
+                onclick={handleStart}
+                disabled={isSubscribeDisabled}
+            ></lightning-button>
+        </div>
+
+        <template if:true={elapsedTime}>
+            <div class="slds-text-align_center slds-m-top_medium">
+                <p>{elapsedTime}</p>
+            </div>
+        </template>
+    </div>    
+</template>

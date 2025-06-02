@@ -1,4 +1,4 @@
-global class OpportunityToQuoteBatch implements Database.Batchable<SObject>, Database.Stateful {
+global class OpportunityToQuoteJob implements Database.Batchable<SObject>, Database.Stateful {
     
     global Database.QueryLocator start(Database.BatchableContext BC) {
         // Retrieve only Opportunities

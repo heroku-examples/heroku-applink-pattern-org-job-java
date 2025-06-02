@@ -88,6 +88,9 @@ public class PricingEngineWorkerService implements MessageListener {
                 return;
             }
 
+            // Check if JobProgress__e Platform Event object exists
+            boolean jobProgressEventExists = checkPlatformEventExists(connection, "JobProgress__e");
+
             // Fetch Opportunities and related OpportunityLineItems in one SOQL query
             String soql = String.format(
                 "SELECT Id, (SELECT Id, Product2Id, Quantity, UnitPrice, PricebookEntryId FROM OpportunityLineItems) " +
@@ -124,7 +127,7 @@ public class PricingEngineWorkerService implements MessageListener {
 
             // Step 2: Bulk create Quotes
             logger.info("Performing bulk insert for {} Quotes", quotesToCreate.size());
-            List<SaveResult> quoteSaveResults = createParallel(connection, quotesToCreate);
+            List<SaveResult> quoteSaveResults = createParallel(connection, quotesToCreate, jobId, 0.0, 50.0, jobProgressEventExists);
 
             // Step 3: Map created Quotes back to their OpportunityId
             Map<String, String> opportunityToQuoteMap = new HashMap<>();
@@ -163,7 +166,7 @@ public class PricingEngineWorkerService implements MessageListener {
             // Step 5: Bulk create QuoteLineItems
             if (!quoteLineItemsToCreate.isEmpty()) {
                 logger.info("Performing bulk insert for {} QuoteLineItems", quoteLineItemsToCreate.size());
-                List<SaveResult> quoteLineSaveResults = createParallel(connection, quoteLineItemsToCreate);
+                List<SaveResult> quoteLineSaveResults = createParallel(connection, quoteLineItemsToCreate, jobId, 50.0, 100.0, jobProgressEventExists);
                 for (SaveResult saveResult : quoteLineSaveResults) {
                     if (!saveResult.isSuccess()) {
                         logger.error("Failed to create QuoteLineItem: {}", saveResult.getErrors()[0].getMessage());
@@ -175,6 +178,16 @@ public class PricingEngineWorkerService implements MessageListener {
 
         } catch (Exception e) {
             logger.error("Error executing batch: {}", e.toString(), e);
+        }
+    }
+
+    private boolean checkPlatformEventExists(PartnerConnection connection, String objectName) {
+        try {
+            connection.describeSObject(objectName);
+            return true;
+        } catch (ConnectionException e) {
+            logger.warn("Platform Event object '{}' does not exist or is not accessible: {}", objectName, e.getMessage());
+            return false;
         }
     }
 
@@ -225,16 +238,29 @@ public class PricingEngineWorkerService implements MessageListener {
      * @param records
      * @return
      */
-    private List<SaveResult> createParallel(PartnerConnection connection, List<SObject> records) {        
+    private List<SaveResult> createParallel(PartnerConnection connection, List<SObject> records, String jobId, double baseProgress, double maxProgress, boolean jobProgressEventExists) {        
         ExecutorService executor = Executors.newFixedThreadPool(20);
         List<Future<SaveResult[]>> futures = new ArrayList<>();
+        int totalBatches = (int) Math.ceil(records.size() / 200.0);
+        final int[] batchCounter = {0}; // used in lambda
+
         for (int i = 0; i < records.size(); i += 200) {
             int end = Math.min(i + 200, records.size());
             List<SObject> batch = records.subList(i, end);
             logger.info("Creating records from index {} to {} ({} records)", i, end - 1, (end - i));
             Future<SaveResult[]> future = executor.submit(() -> {
                 try {  
-                    return connection.create(batch.toArray(new SObject[0]));
+                    SaveResult[] results = connection.create(batch.toArray(new SObject[0]));
+
+                    synchronized (batchCounter) {
+                        batchCounter[0]++;
+                        double progress = baseProgress + ((double) batchCounter[0] / totalBatches) * (maxProgress - baseProgress);
+                        if (jobProgressEventExists) {
+                            sendProgressEvent(connection, jobId, progress);
+                        }
+                    }
+
+                    return results;
                 } catch (Exception e) {
                     logger.error("Error creating batch: {}", e.getMessage(), e);
                     return new SaveResult[0];
@@ -242,6 +268,7 @@ public class PricingEngineWorkerService implements MessageListener {
             });
             futures.add(future);
         }
+
         List<SaveResult> allResults = new ArrayList<>();
         for (Future<SaveResult[]> future : futures) {
             try {
@@ -254,6 +281,35 @@ public class PricingEngineWorkerService implements MessageListener {
         executor.shutdown();
         return allResults;
     }    
+
+    /**
+     * Publishes JobProgress__e Platform Event with progress percent and logs errors if any
+     * @param connection
+     * @param jobId
+     * @param progressPercent
+     */
+    private void sendProgressEvent(PartnerConnection connection, String jobId, double progressPercent) {
+        try {
+            SObject event = new SObject("JobProgress__e");
+            event.setField("JobId__c", jobId);
+            event.setField("Progress__c", progressPercent);
+            SaveResult[] results = connection.create(new SObject[] { event });
+            if (results == null || results.length == 0) {
+                logger.error("No response received from Salesforce when sending progress event.");
+                return;
+            }
+            SaveResult result = results[0];
+            if (result.isSuccess()) {
+                logger.info("Progress event sent successfully: {}% for job {}", progressPercent, jobId);
+            } else {
+                logger.error("Failed to send progress event for job {}: {}", jobId, result.getErrors()[0].getMessage());
+                Arrays.stream(result.getErrors()).forEach(error ->
+                    logger.error("Error code: {}, message: {}", error.getStatusCode(), error.getMessage()));
+            }
+        } catch (Exception e) {
+            logger.error("Exception while sending progress event for job {}: {}", jobId, e.getMessage(), e);
+        }
+    }
 
     /**
      * Sample discount matrix data
