@@ -90,7 +90,10 @@ public class PricingEngineWorkerService implements MessageListener {
 
             // Check if JobProgress__e Platform Event object exists
             boolean jobProgressEventExists = checkPlatformEventExists(connection, "JobProgress__e");
-
+            if (jobProgressEventExists) { // Signal the job has started
+                sendProgressEvent(connection, jobId, 1);
+            }
+            
             // Fetch Opportunities and related OpportunityLineItems in one SOQL query
             String soql = String.format(
                 "SELECT Id, (SELECT Id, Product2Id, Quantity, UnitPrice, PricebookEntryId FROM OpportunityLineItems) " +
