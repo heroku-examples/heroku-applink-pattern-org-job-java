@@ -1,7 +1,7 @@
 Heroku AppLink - Scaling Batch Jobs with Heroku - Java
 ======================================================
 
-This sample seamlessly delegates the processing of large amounts of data with significant compute requirements to Heroku Worker processes. It also demonstrates the use of the Unit of Work aspect of the SDK (JavaScript only for the pilot) for easier utilization of the Salesforce Composite APIs.
+This sample seamlessly delegates the processing of large amounts of data with significant compute requirements to Heroku Worker processes.
 
 # Architecture Overview
 
@@ -137,7 +137,7 @@ heroku salesforce:connect my-org
 heroku salesforce:publish api-docs.yaml --client-name GenerateQuoteJob --connection-name my-org --authorization-connected-app-name GenerateQuoteJobConnectedApp --authorization-permission-set-name GenerateQuoteJobPermissions
 ```
 
-Finally deploy the application and scale both the `web` and `worker` processes to run on a single dyno each.
+Finally deploy the application and scale both the `web` and `worker` processes to run on a single dyno each. If your worker does not start, login to the Heroku dashboard and check the worker is enabled.
 
 ```
 git push heroku main
