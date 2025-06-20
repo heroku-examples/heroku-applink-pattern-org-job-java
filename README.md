@@ -160,7 +160,8 @@ As noted in the [Extending Apex, Flow and Agentforce](https://github.com/heroku-
 ```
 echo \
 "HerokuAppLink.GenerateQuoteJob service = new HerokuAppLink.GenerateQuoteJob();" \
-"System.debug('Quote Id: ' + service.datacreate().Code200.jobId);" \
+"HerokuAppLink.GenerateQuoteJob.datacreate_Request request = new HerokuAppLink.GenerateQuoteJob.datacreate_Request();" \
+"System.debug('Quote Id: ' + service.datacreate(request).Code200.jobId);" \
 | sf apex run -o my-org
 ```
 
