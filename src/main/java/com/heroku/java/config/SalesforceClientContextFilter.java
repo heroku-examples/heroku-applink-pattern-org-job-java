@@ -39,7 +39,7 @@ public class SalesforceClientContextFilter extends OncePerRequestFilter {
             String accessToken = clientContextNode.get("accessToken").asText();
             String apiVersion = clientContextNode.get("apiVersion").asText();
             String requestId = clientContextNode.get("requestId").asText();
-            String namespace = clientContextNode.get("namespace").asText();
+            String namespace = null; // clientContextNode.get("namespace").asText();
             String orgId = clientContextNode.get("orgId").asText();
             String orgDomainUrl = clientContextNode.get("orgDomainUrl").asText();
             logger.info("Got info accessToken:{} also orgDomainURL: {}", accessToken, orgDomainUrl);

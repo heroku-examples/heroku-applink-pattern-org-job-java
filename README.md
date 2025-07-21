@@ -1,10 +1,7 @@
-Heroku Integration - Scaling Batch Jobs with Heroku - Java
-==========================================================
+Heroku AppLink - Scaling Batch Jobs with Heroku - Java
+======================================================
 
-> [!IMPORTANT]
-> For use with the Heroku Integration and Heroku Eventing pilots only
-
-This sample seamlessly delegates the processing of large amounts of data with significant compute requirements to Heroku Worker processes. It also demonstrates the use of the Unit of Work aspect of the SDK (JavaScript only for the pilot) for easier utilization of the Salesforce Composite APIs.
+This sample seamlessly delegates the processing of large amounts of data with significant compute requirements to Heroku Worker processes.
 
 # Architecture Overview
 
@@ -19,12 +16,10 @@ This sample includes two process types `web` and `worker`, both can be scaled ve
 
 # Requirements
 - Heroku login
-- Heroku Integration Pilot enabled
 - Heroku CLI installed
-- Heroku Integration Pilot CLI plugin is installed
+- Heroku AppLink CLI plugin installed
 - Salesforce CLI installed
 - Login information for one or more Scratch, Development or Sandbox orgs
-- Watch the [Introduction to the Heroku Integration Pilot for Developers](https://www.youtube.com/watch?v=T5kOGNuTCLE) video 
 
 # Local Development and Testing
 
@@ -111,7 +106,7 @@ Navigate to the **Quotes** tab in your org to review the generates records:
 
 <img src="images/quotes.jpg" width="60%">
 
-Next we will deploy the application and import it into a Salesforce org to allow jobs to be started from Apex, Flow or Agentforce.
+Next we will deploy the application and publish it into a Salesforce org to allow jobs to be started from Apex, Flow or Agentforce.
 
 # Deploying and Testing
 
@@ -131,36 +126,32 @@ heroku create
 heroku addons:create heroku-redis:mini --wait
 ```
 
-Next deploy the application and scale both the `web` and `worker` processes to run on a single dyno each.
+Next config the Heroku AppLink add-on and publish the application into your Salesforce org as follows:
+
+```
+heroku addons:create heroku-applink --wait
+heroku buildpacks:add --index=1 heroku/heroku-applink-service-mesh
+heroku buildpacks:add heroku/java
+heroku config:set HEROKU_APP_ID="$(heroku apps:info --json | jq -r '.app.id')"
+heroku salesforce:connect my-org
+heroku salesforce:publish api-docs.yaml --client-name GenerateQuoteJob --connection-name my-org --authorization-connected-app-name GenerateQuoteJobConnectedApp --authorization-permission-set-name GenerateQuoteJobPermissions
+```
+
+Finally deploy the application and scale both the `web` and `worker` processes to run on a single dyno each. If your worker does not start, login to the Heroku dashboard and check the worker is enabled.
 
 ```
 git push heroku main
 heroku ps:scale web=1,worker=1
 ```
 
-Next config the Heroku Integration add-on and import the application into your Salesforce org as follows:
-
-```
-heroku addons:create heroku-integration
-heroku buildpacks:add https://github.com/heroku/heroku-buildpack-heroku-integration-service-mesh
-heroku salesforce:connect my-org --store-as-run-as-user
-heroku salesforce:import api-docs.yaml --org-name my-org --client-name GenerateQuoteJob
-```
-
-Trigger an application rebuild to install the Heroku Integration buildpack
-
-```
-git commit --allow-empty -m "empty commit"
-git push heroku main
-```
-
-Once imported grant permissions to users to invoke your code using the following `sf` command:
+Now grant permissions to users to invoke your code using the following `sf` commands:
 
 ```
 sf org assign permset --name GenerateQuoteJob -o my-org
+sf org assign permset --name GenerateQuoteJobPermissions -o my-org
 ```
 
-Once imported you can see the `executeBatch` operation that takes a [SOQL WHERE clause](https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql_select_conditionexpression.htm) to select the **Opportunity** object records to process. Also note that the `datacreate` and `datadelete` operations are also exposed since they declared in the `api-docs.yaml` generated from the Java annotations within `PriceEngineService.java`. 
+Once published you can see the `executeBatch` operation that takes a [SOQL WHERE clause](https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql_select_conditionexpression.htm) to select the **Opportunity** object records to process. Also note that the `datacreate` and `datadelete` operations are also exposed since they declared in the `api-docs.yaml` generated from the Java annotations within `PriceEngineService.java`. 
 
 <img src="images/imported.jpg" width="60%">
 
@@ -168,8 +159,9 @@ As noted in the [Extending Apex, Flow and Agentforce](https://github.com/heroku-
 
 ```
 echo \
-"ExternalService.GenerateQuoteJob service = new ExternalService.GenerateQuoteJob();" \
-"System.debug('Quote Id: ' + service.datacreate().Code200.jobId);" \
+"HerokuAppLink.GenerateQuoteJob service = new HerokuAppLink.GenerateQuoteJob();" \
+"HerokuAppLink.GenerateQuoteJob.datacreate_Request request = new HerokuAppLink.GenerateQuoteJob.datacreate_Request();" \
+"System.debug('Quote Id: ' + service.datacreate(request).Code200.jobId);" \
 | sf apex run -o my-org
 ```
 
@@ -180,9 +172,9 @@ Here is some basic Apex code you can run from the command line to start the gene
 
 ```
 echo \
-"ExternalService.GenerateQuoteJob service = new ExternalService.GenerateQuoteJob();" \
-"ExternalService.GenerateQuoteJob.executeBatch_Request request = new ExternalService.GenerateQuoteJob.executeBatch_Request();" \
-"ExternalService.GenerateQuoteJob_BatchExecutionRequest body = new ExternalService.GenerateQuoteJob_BatchExecutionRequest();" \
+"HerokuAppLink.GenerateQuoteJob service = new HerokuAppLink.GenerateQuoteJob();" \
+"HerokuAppLink.GenerateQuoteJob.executeBatch_Request request = new HerokuAppLink.GenerateQuoteJob.executeBatch_Request();" \
+"HerokuAppLink.GenerateQuoteJob_BatchExecutionRequest body = new HerokuAppLink.GenerateQuoteJob_BatchExecutionRequest();" \
 "body.soqlWhereClause = 'Name LIKE \\\\'Sample Opportunity%\\\\'';" \
 "request.body = body;" \
 "System.debug('Quote Id: ' + service.executeBatch(request).Code200.jobId);" \
@@ -212,7 +204,7 @@ If you have deployed the application, run the following:
 
 ```
 echo \
-"ExternalService.GenerateQuoteJob service = new ExternalService.GenerateQuoteJob();" \
+"HerokuAppLink.GenerateQuoteJob service = new HerokuAppLink.GenerateQuoteJob();" \
 "System.debug('Quote Id: ' + service.datadelete().Code200.jobId);" \
 | sf apex run -o my-org
 ```
@@ -235,13 +227,13 @@ worker.1 | SampleDataWorkerService : Opportunities deleted successfully.
 - The [Heroku Key Value Store](https://elements.heroku.com/addons/heroku-redis) add-on is used to manage two channels that act as queues for sample data and quote generation jobs. The `mini` tier of this [add-on](https://devcenter.heroku.com/articles/heroku-redis) can be used for this sample. Spring Boot automatically configures Redis connections, see [here](https://devcenter.heroku.com/articles/connecting-heroku-redis#spring-boot) for more information.
 - **Spring Boot** [profiles](https://docs.spring.io/spring-boot/reference/features/profiles.html) are used to allow the application to be configured to serve up endpoints for Salesforce to interact with or run worker processes to execute the jobs. Take a look at the `Procfile` to see how these are configured.
 - `PricingEnginerWorkService` is using the [Salesforce WSC SDK](https://github.com/forcedotcom/wsc) to insert **Quote** and **QuoteLineItem** records in separate API calls and thus also separate transactions to Salesforce. This means if the lines fail to insert the Quote records will remain. To avoid this consider adding for production adding rollback logic or using the Salesforce Composite API to insert both sets of records together. In a future release a Heroku SDK will include support for the Unit of Work pattern that makes using the Composite API easier.
-- `Procfile.local` is needed because the main `Procfile` references the Heroku Integration service mesh buildpack when starting the `web` process and this is not installed locally.
+- `Procfile.local` is needed because the main `Procfile` references the Heroku AppLink service mesh buildpack when starting the `web` process and this is not installed locally.
 - `PricingEnginerWorkService` extracts org authentication details from the HTTP request and passes these onto the worker jobs. This design will likely change once this feature reaches GA.
 - The [Heroku Connect](https://elements.heroku.com/addons/herokuconnect) add-on can be used as an alternative to reading and/or writing to an org via [Heroku Postgres](https://elements.heroku.com/addons/heroku-postgresql). This is an option to consider if your use case does not fit within the [Salesforce API limitations](https://developer.salesforce.com/docs/atlas.en-us.salesforce_app_limits_cheatsheet.meta/salesforce_app_limits_cheatsheet). In this case note that there will be some lag between data changes and updates in the Salesforce org caused by the nature of the synchronization pattern used by Heroku Connect. If this is acceptable this option will further increase performance. Of course a hybrid of using the Salesforce API for certain data access needs and Heroku Connect for others is also possible.
 - This sample uses [Salesforce API Query More](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_query_more_results.htm) pattern to retrieve more than 2000 records. See `PricingEngineWorkerService.queryAllRecords`.
 - To create **Quote** records the standard REST API `create` operation is used. Since this has a limit of 200 records per call, this sample uses multi-threading to run batches of 200 inserts concurrently. See `PricingEngineWorkerService.createParallel`. The hard coded default is 20 concurrent requests. Per [Salesforce API limitations](https://developer.salesforce.com/docs/atlas.en-us.salesforce_app_limits_cheatsheet.meta/salesforce_app_limits_cheatsheet) only requests taking more than 20 seconds are subject to concurrency limits.
 - To create sample data the Bulk API v1 (via Saleforce WSC) is used. In a future release support for Bulk API v2 will be provided via a dedicated SDK. For now Bulk API v1 has limitations that restrict maximum sample data volumes to 5000 Opportunities per batch. If you want to code against the newer API in your code you can use the session Id from the `PartnerConnection` with the [Bulk API v2](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/asynch_api_intro.htm).
-- **An informal execution time comparison.** The pricing calculation logic is intentionally simple for the purposes of ensuring the technical aspects of using the Heroku Integration in this context are made clear. As the compute requirements fit within Apex limits, it was possible to create an Apex version of the job logic and this is included in `/src-org` folder. While not a formal benchmark, execution time over 5000 opportunities took ~24 seconds using the Heroku job approach vs ~150 seconds to run with Batch Apex, **an improvement of 144% in execution time**. During testing it was observed that this was largely due in this case to the longer dequeue times with Batch Apex vs being near instant with a Heroku worker.
+- **An informal execution time comparison.** The pricing calculation logic is intentionally simple for the purposes of ensuring the technical aspects of using the Heroku AppLink in this context are made clear. As the compute requirements fit within Apex limits, it was possible to create an Apex version of the job logic and this is included in `/src-org` folder. While not a formal benchmark, execution time over 5000 opportunities took ~24 seconds using the Heroku job approach vs ~150 seconds to run with Batch Apex, **an improvement of 144% in execution time**. During testing it was observed that this was largely due in this case to the longer dequeue times with Batch Apex vs being near instant with a Heroku worker.
 
 Other Samples
 -------------
@@ -249,6 +241,6 @@ Other Samples
 | Sample | What it covers? |
 | ------ | --------------- |
 | [Salesforce API Access - Java](https://github.com/heroku-examples/heroku-integration-pattern-api-access-java) | This sample application showcases how to extend a Heroku web application by integrating it with Salesforce APIs, enabling seamless data exchange and automation across multiple connected Salesforce orgs. It also includes a demonstration of the Salesforce Bulk API, which is optimized for handling large data volumes efficiently. |
-| [Extending Apex, Flow and Agentforce - Java](https://github.com/heroku-examples/heroku-integration-pattern-org-action-java) | This sample demonstrates importing a Heroku application into an org to enable Apex, Flow, and Agentforce to call out to Heroku. For Apex, both synchronous and asynchronous invocation are demonstrated, along with securely elevating Salesforce permissions for processing that requires additional object or field access. |
-| [Scaling Batch Jobs with Heroku - Java](https://github.com/heroku-examples/heroku-integration-pattern-org-job-java) | This sample seamlessly delegates the processing of large amounts of data with significant compute requirements to Heroku Worker processes. It also demonstrates the use of the Unit of Work aspect of the SDK (JavaScript only for the pilot) for easier utilization of the Salesforce Composite APIs. |
+| [Extending Apex, Flow and Agentforce - Java](https://github.com/heroku-examples/heroku-integration-pattern-org-action-java) | This sample demonstrates publishing a Heroku application into an org to enable Apex, Flow, and Agentforce to call out to Heroku. For Apex, both synchronous and asynchronous invocation are demonstrated, along with securely elevating Salesforce permissions for processing that requires additional object or field access. |
+| [Scaling Batch Jobs with Heroku - Java](https://github.com/heroku-examples/heroku-integration-pattern-org-job-java) | This sample seamlessly delegates the processing of large amounts of data with significant compute requirements to Heroku Worker processes. |
 | [Using Eventing to drive Automation and Communication](https://github.com/heroku-examples/heroku-integration-pattern-eventing-java) | This sample extends the batch job sample by adding the ability to use eventing to start the work and notify users once it completes using Custom Notifications. These notifications are sent to the user's desktop or mobile device running Salesforce Mobile. Flow is used in this sample to demonstrate how processing can be handed off to low-code tools such as Flow. |

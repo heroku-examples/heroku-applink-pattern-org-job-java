@@ -31,6 +31,11 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/BatchExecutionResponse"
+      x-sfdc:
+        heroku:
+          authorization:
+            permissionSet: GenerateQuoteJobPermissions
+            connectedApp: GenerateQuoteJobConnectedApp
   /api/data/delete:
     post:
       tags:
@@ -45,6 +50,11 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/DataJobResponse"
+      x-sfdc:
+        heroku:
+          authorization:
+            permissionSet: GenerateQuoteJobPermissions
+            connectedApp: GenerateQuoteJobConnectedApp
   /api/data/create:
     post:
       tags:
@@ -52,6 +62,14 @@ paths:
       summary: Create sample Opportunties to test against
       description: Starts a job to create a large amount of Opportunity records.
       operationId: datacreate
+      parameters:
+      - name: numberOfOpportunities
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 5000
       responses:
         "200":
           description: OK
@@ -59,6 +77,11 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/DataJobResponse"
+      x-sfdc:
+        heroku:
+          authorization:
+            permissionSet: GenerateQuoteJobPermissions
+            connectedApp: GenerateQuoteJobConnectedApp
 components:
   schemas:
     BatchExecutionRequest:
